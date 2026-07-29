@@ -69,7 +69,7 @@ Glido.ai is a complete end-to-end caption studio that lets you:
                     ┌─────────────────────┐
                     │   External Services  │
                     │  ┌─────────────────┐ │
-                    │  │  OpenRouter     │ │
+                    │  │  Groq Openai Whisper     │ │
                     │  │  (Whisper API)  │ │
                     │  └─────────────────┘ │
                     │  ┌─────────────────┐ │
@@ -85,7 +85,7 @@ Glido.ai is a complete end-to-end caption studio that lets you:
 Upload ──▶ Transcribe ──▶ Style/Render ──▶ Remove Silence ──▶ Export
   │           │               │                  │                │
   ▼           ▼               ▼                  ▼                ▼
-Validate   OpenRouter      FFmpeg             FFmpeg           FFmpeg
+Validate   Groq Openai Whisper      FFmpeg             FFmpeg           FFmpeg
 .mp4       Whisper API     drawtext           silencedetect     scale +
 Upload to  word-level      filter burn        + concat         encode
 Supabase   timestamps      captions           trim gaps        1080p/4K
@@ -107,7 +107,7 @@ Storage                                                                  │
 - Files up to 2GB
 
 ### ✅ Speech-to-Text (Caption Generation)
-- Powered by OpenRouter Whisper API (best accuracy/cost balance)
+- Powered by Groq Openai Whisper Whisper API (best accuracy/cost balance)
 - Word-level timestamps for highlight animations
 - English and Hindi support
 - **Hinglish (mixed Hindi-English)** — tested specifically
@@ -146,7 +146,7 @@ Storage                                                                  │
 | Database | Supabase (PostgreSQL) |
 | Storage | Supabase Storage |
 | Auth | Supabase Auth |
-| Speech-to-Text | OpenRouter Whisper API |
+| Speech-to-Text | Groq Openai Whisper Whisper API |
 | Video Processing | FFmpeg 6.0+ (via fluent-ffmpeg) |
 
 ---
@@ -158,7 +158,7 @@ Storage                                                                  │
 - Node.js >= 22
 - FFmpeg >= 6.0 (install via `brew install ffmpeg` on macOS)
 - A Supabase project (free tier works)
-- An OpenRouter API key
+- An Groq Openai Whisper API key
 
 ### 1. Clone & Install
 
@@ -181,7 +181,7 @@ cd backend && npm install && cd ..
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-OPENROUTER_API_KEY=sk-or-v1-xxxxxxxx
+GROQ_API_KEY=sk-or-v1-xxxxxxxx
 PORT=3001
 CORS_ORIGIN=http://localhost:5173
 MAX_FILE_SIZE=2097152000
@@ -374,7 +374,7 @@ glido-ai/
 1. **Landing** → User arrives at glido.ai, reads about features
 2. **Dashboard** → User clicks "Get Started" or "Dashboard"
 3. **Upload** → Drag-and-drop MP4 video file
-4. **Transcribe** → Click "Generate Captions" to trigger Whisper via OpenRouter
+4. **Transcribe** → Click "Generate Captions" to trigger Whisper via Groq Openai Whisper
 5. **Style** → Customize fonts, colors, backgrounds, animation, position
 6. **Templates** → Apply pre-made style or save current as template
 7. **Silence** → Adjust threshold, click "Remove Silence"
@@ -387,7 +387,7 @@ User Action          Frontend              Backend               External
 ─────────────────────────────────────────────────────────────────────────
 Upload Video  ──▶  UploadZone.jsx   ──▶  POST /api/upload  ──▶ Supabase Storage
                                                                     │
-Generate Captions ─▶ EditorPage.jsx   ──▶  POST /api/transcribe ─▶ OpenRouter Whisper
+Generate Captions ─▶ EditorPage.jsx   ──▶  POST /api/transcribe ─▶ Groq openai Whisper 
                                                                     │
 Apply Style    ──▶  StylePanel.jsx    ──▶  POST /api/render-captions ─▶ FFmpeg
                                                                     │
@@ -402,7 +402,7 @@ Export Video   ──▶  ExportPanel.jsx   ──▶  POST /api/export    ─�
 
 1. **FFmpeg drawtext** — Complex word-level animations require multiple drawtext filter passes, which can be slow for long videos with many segments. For production, consider subtitles filter instead.
 
-2. **Whisper via OpenRouter** — Free tier has rate limits. For high volume, self-host Whisper or use Deepgram.
+2. **Whisper via Groq Openai Whisper** — Free tier has rate limits. For high volume, self-host Whisper or use Deepgram.
 
 3. **Hinglish Accuracy** — While Whisper handles Hinglish reasonably well, code-switching (mid-sentence language changes) can produce occasional errors. The transcription prompt is optimized for this but not perfect.
 
@@ -444,7 +444,7 @@ Export Video   ──▶  ExportPanel.jsx   ──▶  POST /api/export    ─�
 Navigate to the Dashboard, drag-and-drop an MP4 file. The upload progress bar shows real-time progress. The system auto-detects orientation (landscape/portrait) and resolution.
 
 ### 2. Generate Captions
-Click "Generate Captions" to trigger Whisper transcription. The API extracts audio, sends it to OpenRouter's Whisper endpoint, and returns word-level timestamps.
+Click "Generate Captions" to trigger Whisper transcription. The API extracts audio, sends it to Groq Openai Whisper's Whisper endpoint, and returns word-level timestamps.
 
 ### 3. Customize Style
 Use the right sidebar Style Panel:
