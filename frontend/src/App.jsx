@@ -1,3 +1,4 @@
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { VideoProvider } from './contexts/VideoContext.jsx';
 import LandingPage from './pages/LandingPage.jsx';

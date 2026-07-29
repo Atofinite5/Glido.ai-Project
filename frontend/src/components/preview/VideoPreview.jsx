@@ -1,9 +1,10 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useVideo } from '../../contexts/VideoContext.jsx';
 import { useCaptions } from '../../contexts/CaptionContext.jsx';
 import { useStyle } from '../../contexts/StyleContext.jsx';
 
 const FADE_DURATION = 0.15;
+const EDGE_PAD = 20;
 
 export default function VideoPreview() {
   const { url } = useVideo();
@@ -13,42 +14,47 @@ export default function VideoPreview() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
-  const prevSegmentRef = useRef(null);
-  const [currentTime, setCurrentTimeState] = useState(0);
 
   const drawCaption = useCallback(() => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
     if (!canvas || !video) return;
 
+    const t = video.currentTime;
     const ctx = canvas.getContext('2d');
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 360;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const currentIndex = segments.findIndex(s => currentTime >= s.start && currentTime <= s.end);
+    const currentIndex = segments.findIndex(s => t >= s.start && t <= s.end);
     const currentSegment = currentIndex >= 0 ? segments[currentIndex] : null;
     const nextSegment = currentSegment && currentIndex < segments.length - 1 ? segments[currentIndex + 1] : null;
 
     let mainOpacity = 1;
     let nextOpacity = 0;
+    let mainTransition = 0;
+    let nextTransition = 0;
 
     if (currentSegment) {
-      const timeIntoSeg = currentTime - currentSegment.start;
+      const timeIntoSeg = t - currentSegment.start;
+      const outTime = currentSegment.end - t;
+      mainTransition = Math.min(1, Math.min(timeIntoSeg, outTime) / FADE_DURATION);
+
       if (timeIntoSeg < FADE_DURATION) {
         mainOpacity = timeIntoSeg / FADE_DURATION;
       }
       if (nextSegment) {
-        const timeBeforeNext = nextSegment.start - currentTime;
+        const timeBeforeNext = nextSegment.start - t;
         if (timeBeforeNext < FADE_DURATION && timeBeforeNext > 0) {
           mainOpacity = timeBeforeNext / FADE_DURATION;
           nextOpacity = 1 - mainOpacity;
+          nextTransition = nextOpacity;
         }
       }
     }
 
-    const fontSize = (style.fontSize / 1080) * canvas.height;
+    const baseFontSize = (style.fontSize / 1080) * canvas.height;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.letterSpacing = `${style.letterSpacing}px`;
@@ -60,30 +66,76 @@ export default function VideoPreview() {
     else y = style.customPosition.y / 100 * canvas.height;
 
     if (currentSegment && mainOpacity > 0.01) {
-      drawTextSegment(ctx, currentSegment, canvas.width, y, fontSize, style, mainOpacity);
+      drawTextSegment(ctx, currentSegment, canvas.width, canvas.height, y, baseFontSize, style, mainOpacity, mainTransition, t);
     }
 
     if (nextSegment && nextOpacity > 0.01) {
-      drawTextSegment(ctx, nextSegment, canvas.width, y, fontSize, style, nextOpacity);
+      drawTextSegment(ctx, nextSegment, canvas.width, canvas.height, y, baseFontSize, style, nextOpacity, nextTransition, t);
     }
 
-    prevSegmentRef.current = currentSegment;
     rafRef.current = requestAnimationFrame(drawCaption);
-  }, [segments, currentTime, style]);
+  }, [segments, style]);
 
-  function drawTextSegment(ctx, segment, canvasWidth, y, fontSize, style, opacity) {
+  function drawTextSegment(ctx, segment, canvasWidth, canvasHeight, y, baseFontSize, style, opacity, transition, t) {
     const text = segment.text;
-    const fontStr = `${style.fontItalic ? 'italic ' : ''}${style.fontBold ? 'bold ' : ''}${fontSize}px ${style.fontFamily}`;
+    const availWidth = canvasWidth - EDGE_PAD * 2 - 48;
+    const minFont = 14;
+    const maxFont = baseFontSize;
+
+    let fontSize = maxFont;
+    let fontStr = `${style.fontItalic ? 'italic ' : ''}${style.fontBold ? 'bold ' : ''}${fontSize}px ${style.fontFamily}`;
     ctx.font = fontStr;
-    const textWidth = ctx.measureText(text).width;
+    let textWidth = ctx.measureText(text).width;
+
+    if (textWidth > availWidth) {
+      fontSize = Math.max(minFont, maxFont * (availWidth / textWidth));
+      fontStr = `${style.fontItalic ? 'italic ' : ''}${style.fontBold ? 'bold ' : ''}${fontSize}px ${style.fontFamily}`;
+      ctx.font = fontStr;
+      textWidth = ctx.measureText(text).width;
+    }
+
     const padding = 24;
-    const boxX = (canvasWidth - textWidth) / 2 - padding;
-    const boxY = y - fontSize / 2 - padding;
+    let boxX = (canvasWidth - textWidth) / 2 - padding;
+    let boxY = y - fontSize / 2 - padding;
     const boxW = textWidth + padding * 2;
     const boxH = fontSize + padding * 2;
 
+    boxX = Math.max(EDGE_PAD, Math.min(boxX, canvasWidth - boxW - EDGE_PAD));
+    boxY = Math.max(EDGE_PAD, Math.min(boxY, canvasHeight - boxH - EDGE_PAD));
+
+    ctx.save();
+
+    let translateY = 0;
+    let translateX = 0;
+    let scale = 1;
+    let alpha = opacity;
+
+    if (style.animationStyle !== 'word-highlight') {
+      const tr = Math.min(1, transition || 1);
+      switch (style.animationStyle) {
+        case 'slide-up':
+          translateY = (1 - tr) * 40;
+          alpha = opacity * tr;
+          break;
+        case 'slide-down':
+          translateY = -(1 - tr) * 40;
+          alpha = opacity * tr;
+          break;
+        case 'scale-in':
+          scale = 0.5 + 0.5 * tr;
+          alpha = opacity * tr;
+          break;
+        case 'slide-left':
+          translateX = (1 - tr) * 60;
+          alpha = opacity * tr;
+          break;
+        default:
+          break;
+      }
+    }
+
     if (style.backgroundType === 'semi-transparent') {
-      ctx.globalAlpha = opacity * 0.6;
+      ctx.globalAlpha = alpha * 0.6;
       ctx.fillStyle = style.backgroundColor;
       ctx.beginPath();
       const r = 12;
@@ -100,11 +152,14 @@ export default function VideoPreview() {
       ctx.fill();
       ctx.globalAlpha = 1;
     } else if (style.backgroundType === 'solid') {
-      ctx.globalAlpha = opacity;
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = style.backgroundColor;
       ctx.fillRect(boxX, boxY, boxW, boxH);
       ctx.globalAlpha = 1;
     }
+
+    const centerX = canvasWidth / 2 + translateX;
+    const centerY = y + translateY;
 
     if (style.animationStyle === 'word-highlight' && segment.words) {
       const words = segment.words;
@@ -114,27 +169,34 @@ export default function VideoPreview() {
         return ww + (i < words.length - 1 ? spaceWidth : 0);
       });
       const totalWordWidth = wordWidths.reduce((a, b) => a + b, 0);
-      let xOffset = (canvasWidth - totalWordWidth) / 2;
-      const currentWordObj = words.find(w => currentTime >= w.start && currentTime <= w.end);
+      let xOffset = (canvasWidth - totalWordWidth) / 2 + translateX;
+      const currentWordObj = words.find(w => t >= w.start && t <= w.end);
 
       ctx.textAlign = 'left';
       words.forEach((w, i) => {
         const isCurrent = currentWordObj === w;
-        ctx.globalAlpha = isCurrent ? opacity : opacity * 0.4;
+        ctx.globalAlpha = isCurrent ? alpha : alpha * 0.4;
         ctx.fillStyle = style.fontColor;
         ctx.font = fontStr;
-        ctx.fillText(w.word, xOffset, y);
+        ctx.fillText(w.word, xOffset, centerY);
         xOffset += wordWidths[i];
       });
       ctx.textAlign = 'center';
       ctx.globalAlpha = 1;
     } else {
-      ctx.globalAlpha = opacity;
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = style.fontColor;
       ctx.font = fontStr;
-      ctx.textAlign = 'center';
-      ctx.fillText(text, canvasWidth / 2, y);
+      if (scale !== 1) {
+        ctx.translate(centerX, centerY);
+        ctx.scale(scale, scale);
+        ctx.fillText(text, 0, 0);
+      } else {
+        ctx.fillText(text, centerX, centerY);
+      }
     }
+
+    ctx.restore();
   }
 
   useEffect(() => {
@@ -147,9 +209,7 @@ export default function VideoPreview() {
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      const time = videoRef.current.currentTime;
-      setCurrentTimeState(time);
-      setCurrentTime(time);
+      setCurrentTime(videoRef.current.currentTime);
     }
   };
 
@@ -170,7 +230,7 @@ export default function VideoPreview() {
   }
 
   return (
-    <div className="relative max-w-full max-h-full">
+    <div className="relative inline-block max-w-full max-h-full">
       <video
         ref={videoRef}
         src={url}
@@ -180,11 +240,12 @@ export default function VideoPreview() {
         onPause={() => setIsPlaying(false)}
         controls
         crossOrigin="anonymous"
+        style={{ display: 'block' }}
       />
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        style={{ objectFit: 'contain' }}
+        className="absolute top-0 left-0 pointer-events-none"
+        style={{ width: '100%', height: '100%' }}
       />
     </div>
   );
