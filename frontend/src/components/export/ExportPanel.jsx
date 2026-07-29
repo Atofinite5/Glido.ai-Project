@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useVideo } from '../../contexts/VideoContext.jsx';
 import { useStyle } from '../../contexts/StyleContext.jsx';
 
@@ -49,9 +50,9 @@ export default function ExportPanel() {
         Export
       </button>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setShowModal(false)}>
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 z-50" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold">Export Video</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
@@ -163,8 +164,9 @@ export default function ExportPanel() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+      document.body
+    )}
     </>
   );
 }

@@ -1,4 +1,6 @@
-import { VideoProvider, useVideo } from '../contexts/VideoContext.jsx';
+import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { useVideo } from '../contexts/VideoContext.jsx';
 import { CaptionProvider, useCaptions } from '../contexts/CaptionContext.jsx';
 import { StyleProvider } from '../contexts/StyleContext.jsx';
 import VideoPreview from '../components/preview/VideoPreview.jsx';
@@ -9,8 +11,20 @@ import ExportPanel from '../components/export/ExportPanel.jsx';
 import TemplateGallery from '../components/templates/TemplateGallery.jsx';
 
 function EditorContent() {
-  const { videoId, url, metadata } = useVideo();
+  const { id } = useParams();
+  const { videoId, url, metadata, setVideo } = useVideo();
   const { transcribe, isTranscribing, segments } = useCaptions();
+
+  useEffect(() => {
+    if (id && !videoId) {
+      fetch(`/api/upload/${id}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data?.id) setVideo(data.id, data.original_url, data);
+        })
+        .catch(() => {});
+    }
+  }, [id]);
 
   return (
     <div className="h-screen flex flex-col bg-glido-darker">
@@ -67,12 +81,10 @@ function EditorContent() {
 
 export default function EditorPage() {
   return (
-    <VideoProvider>
-      <CaptionProvider>
-        <StyleProvider>
-          <EditorContent />
-        </StyleProvider>
-      </CaptionProvider>
-    </VideoProvider>
+    <CaptionProvider>
+      <StyleProvider>
+        <EditorContent />
+      </StyleProvider>
+    </CaptionProvider>
   );
 }
