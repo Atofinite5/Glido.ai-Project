@@ -12,6 +12,7 @@ const DEFAULT_STYLE = {
   animationStyle: 'word-highlight',
   position: 'bottom',
   customPosition: { x: 50, y: 50 },
+  letterSpacing: 0,
 };
 
 const StyleContext = createContext(null);
@@ -67,6 +68,7 @@ export function StyleProvider({ children }) {
     position: style.position,
     custom_position_x: style.customPosition.x,
     custom_position_y: style.customPosition.y,
+    letter_spacing: style.letterSpacing,
   }), [style]);
 
   return (

@@ -76,6 +76,17 @@ export default function StylePanel() {
           </div>
         </div>
       </div>
+      <div>
+        <label className="text-xs text-gray-400 block mb-2">Letter Spacing</label>
+        <input
+          type="range"
+          min="-2" max="8" step="0.5"
+          className="slider"
+          value={style.letterSpacing}
+          onChange={(e) => updateStyle('letterSpacing', Number(e.target.value))}
+        />
+        <span className="text-xs text-gray-500 mt-1 block">{style.letterSpacing}px</span>
+      </div>
 
       <div className="flex gap-4">
         <label className="flex items-center gap-2 cursor-pointer">

@@ -49,6 +49,11 @@ export function CaptionProvider({ children }) {
   }, []);
 
   const transcribe = useCallback(async (videoId) => {
+    if (!videoId) {
+      setState(prev => ({ ...prev, isTranscribing: false, error: 'No video selected. Upload a video first.' }));
+      return;
+    }
+
     setState(prev => ({ ...prev, isTranscribing: true, error: null }));
 
     try {
