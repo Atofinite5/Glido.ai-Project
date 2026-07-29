@@ -145,13 +145,16 @@ export default function StylePanel() {
       </div>
 
       <div>
-        <label className="text-xs text-gray-400 block mb-2">Animation</label>
-        <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs text-gray-400 block mb-2">Transition</label>
+        <div className="grid grid-cols-3 gap-2">
           {[
             { key: 'none', label: 'None' },
-            { key: 'word-highlight', label: 'Word Highlight' },
             { key: 'fade', label: 'Fade' },
-            { key: 'slide', label: 'Slide' },
+            { key: 'slide-up', label: 'Slide Up' },
+            { key: 'slide-down', label: 'Slide Down' },
+            { key: 'scale-in', label: 'Scale In' },
+            { key: 'slide-left', label: 'Slide In' },
+            { key: 'word-highlight', label: 'Word Glow' },
           ].map(({ key, label }) => (
             <button
               key={key}
